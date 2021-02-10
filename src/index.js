@@ -4,18 +4,19 @@ const detailsImg = detailsDiv.querySelector(".detail-image")
 const detailsTitle = detailsDiv.querySelector(".title")
 const ingredientsDiv = detailsDiv.querySelector(".ingredients-container")
 const ingredientsList = detailsDiv.querySelector(".ingredients-list")
-
+const spiceImages = document.querySelector("#spice-images")
 //Forms
 const updateForm = document.querySelector('#update-form')
 const newForm = document.querySelector('#ingredient-form')
 
 //Urls
 const spicesUrl = 'http://localhost:3000/spiceblends'
+const ingredientsUrl = 'http://localhost:3000/ingredients'
 
 //ItemIDs
 let firstSpiceID = "1"
 
-// Network Requests //
+//***************** Network Requests *****************//
 const getAllSpices = _ =>{
   return fetch(spicesUrl)
   .then( response => response.json() )
@@ -41,15 +42,46 @@ const patchSpice = e => {
 }
 
 const postIngredient = e => {
-  e.preventDefault()
-  const li = document.createElement("li")
-  // li.dataset.ingredientid = ingredient.id
-  li.textContent = e.target.name.value
-  ingredientsList.append(li)
-  e.target.reset()
+  const spiceblendId = parseInt(e.target.dataset.id)
+  let name = e.target.name.value
+  // Select first letter of word and replace 
+  name = name.replace(/\b\w/, name.charAt(0).toUpperCase())
+
+  config = {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json"
+    },
+    body: JSON.stringify( {name, spiceblendId})
+  }
+
+  //return promise to render function
+  return fetch(ingredientsUrl, config)
+  .then( r => r.json() )
 }
 
-// DOM Manipulation
+
+
+//************* DOM Manipulation *****************//
+const renderSpicesMenu = _ => {
+  getAllSpices()
+  .then( spiceArray => {
+    Array.from(spiceImages.children).forEach(child => child.remove())
+    for (spice of spiceArray){
+      createMenuItem(spice)
+    }
+  })
+}
+
+const createMenuItem = spiceData => {
+  const img = document.createElement("img")
+  img.src = spiceData.image
+  img.alt = spiceData.title
+  img.className = "spice"
+  img.dataset.id = spiceData.id
+  spiceImages.append(img)
+}
+
 
 const showSpice = id => {
   getSpice(id).then( spiceData => renderSpice(spiceData))
@@ -63,32 +95,47 @@ const updateSpice = e => {
   e.target.reset()
 }
 
-//Update DOM elements. 
+//Update Details elements. 
 const renderSpice = spiceData => {
   detailsDiv.dataset.id = spiceData.id
   detailsImg.src = spiceData.image
   detailsImg.alt = spiceData.title
   detailsTitle.textContent =  spiceData.title
-  renderIngredients(spiceData.ingredients)
   updateForm.dataset.id = spiceData.id
   newForm.dataset.id = spiceData.id
+  
+  // Remove existing Ingredients and re-render
+  Array.from(ingredientsList.children).forEach (child => child.remove())
+  for (ingredient of spiceData.ingredients) {
+    renderIngredient(ingredient)
+  }
 }
 
-// Remove existing Ingredients and re-render
-const renderIngredients = ingredientsArray=> {
-  Array.from(ingredientsList.children).forEach (child => child.remove())
-  for (ingredient of ingredientsArray) {
+const renderIngredient = ingredient => {
     const li = document.createElement("li")
     li.dataset.ingredientid = ingredient.id
     li.textContent = ingredient.name
     ingredientsList.append(li)
-  }
+}
+
+const createIngredient = e => {
+  e.preventDefault()
+  postIngredient(e).then( data => renderIngredient(data) )
+  e.target.reset()
 }
 
 
-//Listeners
-updateForm.addEventListener('submit', updateSpice)
-newForm.addEventListener('submit', postIngredient)
+//***************** Listeners *****************//
+const handleClick = e => {
+  switch(true) {
+    case (e.target.className === "spice"):
+      showSpice(e.target.dataset.id)
+  }
+}
 
-//Iniitialize the Page
+updateForm.addEventListener('submit', updateSpice)
+newForm.addEventListener('submit', createIngredient)
+spiceImages.addEventListener('click', handleClick)
+//***************** Iniitialize the Page *****************//
+renderSpicesMenu()
 showSpice(firstSpiceID)
