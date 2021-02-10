@@ -40,6 +40,15 @@ const patchSpice = e => {
   .then( response => response.json() )
 }
 
+const postIngredient = e => {
+  e.preventDefault()
+  const li = document.createElement("li")
+  // li.dataset.ingredientid = ingredient.id
+  li.textContent = e.target.name.value
+  ingredientsList.append(li)
+  e.target.reset()
+}
+
 // DOM Manipulation
 
 const showSpice = id => {
@@ -48,27 +57,38 @@ const showSpice = id => {
 
 const updateSpice = e => {
   e.preventDefault()
-  patchSpice(e).then(data => {
-    debugger
-    renderSpice(data)
+  patchSpice(e).then( spiceData => {
+    detailsTitle.textContent = spiceData.title
   })
+  e.target.reset()
 }
 
+//Update DOM elements. 
 const renderSpice = spiceData => {
   detailsDiv.dataset.id = spiceData.id
   detailsImg.src = spiceData.image
   detailsImg.alt = spiceData.title
   detailsTitle.textContent =  spiceData.title
-  for (ingredient of spiceData.ingredients) {
+  renderIngredients(spiceData.ingredients)
+  updateForm.dataset.id = spiceData.id
+  newForm.dataset.id = spiceData.id
+}
+
+// Remove existing Ingredients and re-render
+const renderIngredients = ingredientsArray=> {
+  Array.from(ingredientsList.children).forEach (child => child.remove())
+  for (ingredient of ingredientsArray) {
     const li = document.createElement("li")
     li.dataset.ingredientid = ingredient.id
     li.textContent = ingredient.name
     ingredientsList.append(li)
   }
-  updateForm.dataset.id = spiceData.id
-  newForm.dataset.id = spiceData.id
 }
 
-showSpice(firstSpiceID)
 
+//Listeners
 updateForm.addEventListener('submit', updateSpice)
+newForm.addEventListener('submit', postIngredient)
+
+//Iniitialize the Page
+showSpice(firstSpiceID)
